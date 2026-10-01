@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Product Image Anomaly Detection & Quality Agent</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --line:#e4e7ec; --txt:#1a1f2e; --mut:#667085;
+    --acc:#2563eb; --ok:#12b76a; --warn:#f79009; --bad:#ef4444; --anom:#f97316;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{display:flex;align-items:center;gap:10px;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0}
+  .mark{width:26px;height:26px;border-radius:6px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  h1{font-size:15px;font-weight:600;margin:0}
+  .status-dot{margin-left:auto;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .status-dot i{width:8px;height:8px;border-radius:50%;background:#98a2b3;display:inline-block}
+  .status-dot.on i{background:var(--ok)}
+  main{max-width:1120px;margin:0 auto;padding:20px 24px 40px;display:grid;grid-template-columns:380px 1fr;gap:16px;align-items:start}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px}
+  .card h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:16px 0 8px}
+  .card h2:first-child{margin-top:0}
+  #drop{border:1.5px dashed #cdd5df;border-radius:8px;padding:26px 12px;text-align:center;color:var(--mut);cursor:pointer;font-size:13px;transition:border-color .15s,color .15s}
+  #drop:hover,#drop.hover{border-color:var(--acc);color:var(--acc)}
+  #preview{max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--line);display:block;margin:10px auto 0}
+  .example{display:block;text-align:center;margin-top:8px;font-size:12px;color:var(--acc);background:none;border:none;cursor:pointer;width:100%;padding:4px}
+  .example:hover{text-decoration:underline}
+  .tabs{display:flex;gap:4px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+  .tabs button{background:none;border:none;border-bottom:2px solid transparent;padding:6px 10px;font:inherit;font-size:13px;color:var(--mut);cursor:pointer}
+  .tabs button.act{color:var(--acc);border-bottom-color:var(--acc);font-weight:600}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  label{display:block;font-size:11px;color:var(--mut);margin-bottom:3px}
+  input,textarea{width:100%;background:#fafbfc;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:7px 9px;font:inherit;font-size:13px}
+  input:focus,textarea:focus{outline:none;border-color:var(--acc);background:#fff}
+  textarea{min-height:160px;resize:vertical;font-family:Consolas,Menlo,monospace;font-size:12px}
+  .span2{grid-column:span 2}
+  #go{width:100%;margin-top:14px;padding:10px;border:none;border-radius:8px;background:var(--acc);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+  #go:hover{background:#1d4ed8}
+  #go:disabled{opacity:.55;cursor:default}
+  .err{margin-top:10px;background:#fef3f2;border:1px solid #fecdca;color:#b42318;padding:8px 10px;border-radius:6px;font-size:13px}
+  .placeholder{color:var(--mut);text-align:center;padding:70px 20px;font-size:13px}
+  .rhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .badge{padding:5px 14px;border-radius:6px;font-weight:700;font-size:14px;letter-spacing:.02em}
+  .b-ok{background:#ecfdf3;color:#027a48;border:1px solid #abefc6}
+  .b-warn{background:#fffaeb;color:#b54708;border:1px solid #fedf89}
+  .b-bad{background:#fef3f2;color:#b42318;border:1px solid #fecdca}
+  .pid{font-size:12px;color:var(--mut)}
+  .overall{margin-left:auto;text-align:right}
+  .overall b{font-size:26px;line-height:1}
+  .overall span{display:block;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
+  .chips{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:#fef3f2;color:#b42318;border:1px solid #fecdca}
+  .scores{display:grid;grid-template-columns:1fr 1fr;gap:7px 20px;margin-top:6px}
+  .row{display:grid;grid-template-columns:118px 1fr 36px;align-items:center;gap:8px;font-size:12px}
+  .row .lab{color:var(--mut);white-space:nowrap}
+  .row .val{text-align:right;font-variant-numeric:tabular-nums}
+  .bar{height:6px;background:#eef1f4;border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px;background:var(--ok);transition:width .4s}
+  .bar i.mid{background:var(--warn)}
+  .bar i.low{background:var(--bad)}
+  .det{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  .det div{background:#f8f9fb;border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-size:13px}
+  .det span{display:block;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+  ul.issues{list-style:none;margin:6px 0 0;padding:0}
+  ul.issues li{border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:6px;padding:7px 10px;margin-bottom:5px;font-size:13px;background:#fff}
+  ul.issues li.vlm{border-left-color:var(--acc);color:#1849a9}
+  ul.issues li.skip{border-left-color:#cdd5df;color:var(--mut);font-style:italic}
+  ul.issues li.none{border-left-color:var(--ok);color:#027a48}
+  .expl{background:#f8f9fb;border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-top:10px;font-size:13px;color:#344054}
+  .jsonrow{margin-top:10px;display:flex;gap:12px;align-items:flex-start}
+  .jsonrow details{flex:1}
+  summary{cursor:pointer;font-size:12px;color:var(--mut)}
+  summary:hover{color:var(--acc)}
+  pre{background:#101828;color:#e4e7ec;border-radius:8px;padding:12px;overflow:auto;font-size:12px;max-height:300px;margin-top:8px}
+  .copy{font-size:12px;color:var(--acc);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-top:2px}
+  .copy:hover{text-decoration:underline}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid #d0d5dd;border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:8px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="mark">P</div>
+  <h1>Product Image Anomaly Detection &amp; Quality Agent</h1>
+  <div id="health" class="status-dot"><i></i>connecting…</div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Product image</h2>
+    <div id="drop">Drag &amp; drop an image, or click to browse
+      <input type="file" id="file" accept="image/*" hidden/>
+    </div>
+    <img id="preview" alt="preview" hidden/>
+    <button class="example" id="example" type="button">Load example image</button>
+
+    <h2>Product information (JSON)</h2>
+    <div class="tabs">
+      <button id="tabF" class="act" type="button">Form</button>
+      <button id="tabJ" type="button">Raw JSON</button>
+    </div>
+    <div id="paneF" class="grid">
+      <div><label>ID</label><input id="f_id" placeholder="12345"/></div>
+      <div><label>Brand</label><input id="f_brand" placeholder="Sanofi"/></div>
+      <div class="span2"><label>Name</label><input id="f_name" placeholder="Doliprane 1000 mg Comprime"/></div>
+      <div><label>Category</label><input id="f_cat" placeholder="Medicament"/></div>
+      <div><label>Dosage</label><input id="f_dos" placeholder="1000 mg"/></div>
+      <div><label>Form</label><input id="f_form" placeholder="Comprime"/></div>
+      <div><label>Laboratory</label><input id="f_lab" placeholder="Sanofi"/></div>
+      <div class="span2"><label>Packaging</label><input id="f_pack" placeholder="Boite de 8 comprimes"/></div>
+    </div>
+    <div id="paneJ" hidden>
+      <textarea id="pjson" spellcheck="false" placeholder='{"id": "12345", "name": "...", "brand": "..."}'></textarea>
+    </div>
+
+    <button id="go" type="button">Analyze</button>
+    <div id="err" class="err" hidden></div>
+  </section>
+
+  <section class="card" id="report">
+    <div class="placeholder">Analysis result will appear here.<br/><br/>Upload an image, enter the product JSON, and press <b>Analyze</b>.</div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let currentFile = null;
+
+fetch("/health").then(r=>r.json()).then(h=>{
+  const el = $("health");
+  el.innerHTML = `<i></i>${h.vlm_enabled ? "Online · " + h.vlm_provider : "Online"}`;
+  el.classList.add("on");
+}).catch(()=>{ $("health").innerHTML = "<i></i>Server offline"; });
+
+$("drop").onclick = ()=>$("file").click();
+$("file").onchange = e => { if(e.target.files[0]) setFile(e.target.files[0]); };
+["dragover","dragenter"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.add("hover");}));
+["dragleave","drop"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.remove("hover");}));
+$("drop").addEventListener("drop", e => { const f=e.dataTransfer.files[0]; if(f && f.type.startsWith("image/")) setFile(f); });
+
+function setFile(file){
+  currentFile = file;
+  const img = $("preview");
+  img.src = URL.createObjectURL(file);
+  img.hidden = false;
+}
+
+$("example").onclick = async ()=>{
+  const res = await fetch("/samples/doliprane_ok.jpg");
+  if(!res.ok){ showErr("Example not found."); return; }
+  setFile(new File([await res.blob()], "doliprane_ok.jpg", {type:"image/jpeg"}));
+  const pj = await fetch("/samples/product_doliprane.json").then(r=>r.json());
+  fillForm(pj);
+  $("tabF").click();
+};
+
+function fillForm(p){
+  const map = {f_id:"id", f_name:"name", f_brand:"brand", f_cat:"category", f_dos:"dosage", f_form:"form", f_lab:"laboratory", f_pack:"packaging"};
+  for (const [inp, key] of Object.entries(map)) $(inp).value = p[key] ?? "";
+}
+
+$("tabF").onclick = ()=>{ $("tabF").classList.add("act"); $("tabJ").classList.remove("act"); $("paneF").hidden=false; $("paneJ").hidden=true; };
+$("tabJ").onclick = ()=>{ $("tabJ").classList.add("act"); $("tabF").classList.remove("act"); $("paneJ").hidden=false; $("paneF").hidden=true; };
+
+function productFromForm(){
+  const o={};
+  const map={f_id:"id",f_name:"name",f_brand:"brand",f_cat:"category",f_dos:"dosage",f_form:"form",f_lab:"laboratory",f_pack:"packaging"};
+  for(const [k,v] of Object.entries(map)){ const val=$(k).value.trim(); if(val) o[v]=val; }
+  return o;
+}
+function showErr(msg){ $("err").textContent=msg; $("err").hidden=false; }
+
+$("go").onclick = async ()=>{
+  $("err").hidden=true;
+  if(!currentFile){ showErr("Select an image first (browse or example)."); return; }
+  let product;
+  if(!$("paneJ").hidden){
+    try{ product = JSON.parse($("pjson").value); }
+    catch(e){ showErr("Invalid product JSON: "+e.message); return; }
+  } else {
+    product = productFromForm();
+    if(!Object.keys(product).length){ showErr("Fill in the product information."); return; }
+  }
+  const fd = new FormData();
+  fd.append("file", currentFile, currentFile.name);
+  fd.append("product_json", JSON.stringify(product));
+  const btn=$("go");
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Analyzing…';
+  $("report").innerHTML='<div class="placeholder"><span class="spin"></span>Analyzing image…</div>';
+  try{
+    const res = await fetch("/analyze", {method:"POST", body:fd});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || res.statusText);
+    render(data);
+  }catch(e){ $("report").innerHTML='<div class="placeholder">Analysis failed.</div>'; showErr("Analysis failed: "+e.message); }
+  finally{ btn.disabled=false; btn.textContent="Analyze"; }
+};
+
+function lvl(v){ return v>=70?"":(v>=45?"mid":"low"); }
+function badge(s){
+  if(s==="VALID") return ["b-ok", s];
+  if(s==="VALID_BUT_LOW_QUALITY") return ["b-warn", s];
+  if(s==="LOW_IMAGE_QUALITY") return ["b-warn", s];
+  if(s==="ANOMALY") return ["b-warn", s];
+  return ["b-bad", s];
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function render(r){
+  const sc=r.scores||{};
+  const rows=Object.entries(sc).filter(([k])=>k!=="overall").map(([k,v])=>`
+    <div class="row"><span class="lab">${k.replace(/_/g," ")}</span>
+      <div class="bar"><i class="${lvl(v)}" style="width:${v}%"></i></div>
+      <span class="val">${(+v).toFixed(0)}</span></div>`).join("");
+  let issues = (r.issues||[]).map(i=>{
+    const cls = i.startsWith("VLM validation skipped") ? "skip" : (i.startsWith("VLM validation:") ? "vlm" : "");
+    return `<li class="${cls}">${esc(i)}</li>`;
+  }).join("");
+  if(!issues) issues = '<li class="none">No issues found.</li>';
+  const chips = (r.anomaly_types||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join("");
+  const [bcls, btxt] = badge(r.status);
+  const raw = esc(JSON.stringify(r,null,2));
+  $("report").innerHTML = `
+    <div class="rhead">
+      <span class="badge ${bcls}">${esc(btxt)}</span>
+      <span class="pid">Product ID: ${esc(String(r.product_id||"—"))}</span>
+      <span class="overall"><b>${sc.overall!=null?(+sc.overall).toFixed(0):"—"}</b><span>Overall score</span></span>
+    </div>
+    ${chips ? `<div class="chips">${chips}</div>` : ""}
+    <h2>Scores</h2>
+    <div class="scores">${rows}</div>
+    <h2>Detected product</h2>
+    <div class="det">
+      <div><span>Name</span>${esc(r.detected_product?.name||"—")}</div>
+      <div><span>Brand</span>${esc(r.detected_product?.brand||"—")}</div>
+      <div><span>Category</span>${esc(r.detected_product?.category||"—")}</div>
+    </div>
+    <h2>Issues</h2>
+    <ul class="issues">${issues}</ul>
+    <div class="expl">${esc(r.explanation||"")}</div>
+    <div class="jsonrow">
+      <details><summary>JSON output</summary><pre id="rawjson">${raw}</pre></details>
+      <button class="copy" type="button" id="copyBtn">Copy</button>
+    </div>`;
+  $("copyBtn").onclick = async ()=>{
+    await navigator.clipboard.writeText(JSON.stringify(r, null, 2));
+    $("copyBtn").textContent = "Copied";
+    setTimeout(()=>{ $("copyBtn").textContent = "Copy"; }, 1500);
+  };
+}
+</script>
+</body>
+</html>

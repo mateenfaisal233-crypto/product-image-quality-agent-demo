@@ -1,0 +1,26 @@
+{
+  "product_id": "12345",
+  "is_correct_product": true,
+  "is_anomaly": false,
+  "status": "VALID",
+  "anomaly_types": [],
+  "scores": {
+    "product_match": 94.1,
+    "image_quality": 95.9,
+    "sharpness": 100.0,
+    "resolution": 87.5,
+    "visibility": 100.0,
+    "composition": 99.9,
+    "background": 100.0,
+    "lighting": 91.9,
+    "text_readability": 96.6,
+    "overall": 96.2
+  },
+  "detected_product": {
+    "name": "Doliprane 1000 mg Comprimé",
+    "brand": "Sanofi",
+    "category": "Medicament"
+  },
+  "issues": [],
+  "explanation": "The image corresponds to the provided product and has good visual quality; it is suitable for a professional product catalog."
+}

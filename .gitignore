@@ -1,0 +1,7 @@
+.venv/
+.modelcache/
+__pycache__/
+*.pyc
+.pytest_cache/
+examples/samples/
+.env

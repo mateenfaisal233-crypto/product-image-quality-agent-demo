@@ -1,0 +1,30 @@
+{
+  "product_id": "12345",
+  "is_correct_product": false,
+  "is_anomaly": true,
+  "status": "WRONG_PRODUCT",
+  "anomaly_types": [
+    "WRONG_PRODUCT"
+  ],
+  "scores": {
+    "product_match": 20.0,
+    "image_quality": 88.7,
+    "sharpness": 88.2,
+    "resolution": 87.5,
+    "visibility": 100.0,
+    "composition": 99.9,
+    "background": 100.0,
+    "lighting": 90.9,
+    "text_readability": 99.2,
+    "overall": 75.4
+  },
+  "detected_product": {
+    "name": "Maalox Reckitt",
+    "brand": "Unknown",
+    "category": "Medicament"
+  },
+  "issues": [
+    "The image does not correspond to the provided product (expected 'Doliprane 1000 mg Comprimé', image shows 'Maalox Reckitt')."
+  ],
+  "explanation": "The image does not match the provided product metadata. The image does not correspond to the provided product (expected 'Doliprane 1000 mg Comprimé', image shows 'Maalox Reckitt')."
+}

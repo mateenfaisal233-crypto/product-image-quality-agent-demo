@@ -1,0 +1,73 @@
+# =============================================================
+# Product Image Anomaly Detection & Quality Agent - configuration
+# Sab kuch yahan se configurable hai. Weights document hain (README dekhein).
+# =============================================================
+
+scoring:
+  # Weighted sum ke liye weights (total = 1.0 hona chahiye; auto-normalize hoti hain)
+  weights:
+    product_match: 0.25
+    image_quality: 0.15
+    sharpness: 0.10
+    resolution: 0.08
+    visibility: 0.12
+    composition: 0.10
+    background: 0.08
+    lighting: 0.07
+    text_readability: 0.05
+
+thresholds:
+  # --- sharpness / blur (Laplacian variance) ---
+  blur_laplacian_min: 60.0        # is se neeche -> BLUR anomaly
+  blur_laplacian_severe: 25.0     # is se neeche -> EXCESSIVE_BLUR anomaly
+  # --- resolution ---
+  min_resolution: 400             # min side px: is se neeche -> LOW_RESOLUTION
+  good_resolution: 1000           # is se ooper -> full score
+  # --- exposure / lighting (product region par napti) ---
+  exposure_mean_min: 45
+  exposure_mean_max: 240
+  contrast_min: 35.0              # gray std is se neeche -> POOR_CONTRAST
+  noise_median_max: 18.0          # median abs dev is se ooper -> NOISE
+  blockiness_ratio_max: 1.6       # JPEG blocking threshold
+  # --- product segmentation / visibility ---
+  product_min_area_ratio: 0.02    # is se chhota -> PRODUCT_NOT_VISIBLE
+  product_small_area_ratio: 0.05  # is se chhota -> PRODUCT_TOO_SMALL
+  edge_margin_min: 0.02           # bbox margin: is se kam -> product too close to edge
+  center_offset_max: 0.25         # center se zyada khisakna -> BAD_COMPOSITION
+  empty_space_max: 0.75           # foreground is se kam -> EXCESSIVE_EMPTY_SPACE
+  # --- background clutter ---
+  bg_edge_density_max: 0.12       # product ke bahar Canny edge density
+  bg_color_std_max: 30.0          # product ke bahar color variance (flat shapes bhi clutter)
+  # --- OCR / text ---
+  ocr_confidence_min: 45.0        # is se neeche mean confidence -> TEXT_UNREADABLE
+  # --- correctness (CLIP cosine similarity) ---
+  clip_min_similarity: 0.20       # is se neeche -> WRONG_PRODUCT (image vs product text)
+
+classification:
+  valid_min_overall: 70           # overall >= 70 + koi anomaly nahi -> VALID
+  low_quality_max_overall: 50     # is se neeche -> LOW_IMAGE_QUALITY (unusable)
+  # Priority: WRONG_* > quality/anomaly > VALID
+  # Spec sec 9: correct product + blur (EXCESSIVE bhi) -> VALID_BUT_LOW_QUALITY
+
+correctness:
+  backend: auto                   # auto | clip | heuristics (OCR/text based)
+  clip_model: openai/clip-vit-base-patch32
+
+ocr:
+  enabled: true
+  engine: rapidocr                # rapidocr | none
+
+vlm:
+  # Spec ke mutabiq LLM/VLM sirf OPTIONAL validation layer hai.
+  # Client ki Groq key (.env file) se chalta hai; gemini bhi supported.
+  # Notes sirf issues[] mein jate hain - status/scores nahi badalte.
+  enabled: true
+  provider: groq                  # groq | gemini
+  model: qwen/qwen3.8-27b         # Groq vision model (image input)
+  timeout_sec: 10                 # VLM background mein chalta hai, max 10s budget
+  api_key_env: GROQ_API_KEY       # .env file mein key hoti hai
+
+runtime:
+  image_max_side: 1600            # analysis se pehle resize (speed)
+  url_timeout_sec: 15
+  model_cache_dir: .modelcache    # CLIP weights yahan download hongi (folder ke andar)

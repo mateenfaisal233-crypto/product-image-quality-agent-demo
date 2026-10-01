@@ -1,0 +1,17 @@
+# Base (PyPI)
+fastapi
+uvicorn
+httpx
+python-multipart
+opencv-python
+numpy
+pillow
+pyyaml
+requests
+pytest
+transformers
+rapidocr-onnxruntime
+
+# Torch (CPU) - install separately first:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch
