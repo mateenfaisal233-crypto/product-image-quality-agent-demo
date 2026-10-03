@@ -146,5 +146,14 @@ if __name__ == "__main__":
 
 # Routes se baad mounts (taake /analyze, /health priority rakhein)
 _samples_dir = project_root() / "examples" / "samples"
+if not _samples_dir.is_dir():
+    # The samples are synthetic and are also used by the browser UI. Generate
+    # them on first start so a fresh clone behaves like the documented setup.
+    try:
+        from examples.make_samples import build_all
+
+        build_all(_samples_dir)
+    except Exception:  # noqa: BLE001
+        pass
 if _samples_dir.is_dir():
     app.mount("/samples", StaticFiles(directory=str(_samples_dir)), name="samples")

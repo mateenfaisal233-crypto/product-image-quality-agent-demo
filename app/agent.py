@@ -133,7 +133,18 @@ class ProductQualityAgent:
         t_metrics, t_anom, t_issues = text_ocr_check.evaluate_text(ocr_results, th)
 
         clip = self._get_clip()
-        corr = correctness_check.evaluate_correctness(img, prod, ocr_results, clip, th)
+        # Do not turn a degraded image into a product mismatch solely because
+        # CLIP similarity is unreliable when blur/low resolution removes the
+        # visual evidence. OCR-based mismatches remain fully active.
+        degraded = {"BLUR", "EXCESSIVE_BLUR", "LOW_RESOLUTION", "TEXT_UNREADABLE"}
+        corr = correctness_check.evaluate_correctness(
+            img,
+            prod,
+            ocr_results,
+            clip,
+            th,
+            allow_visual_mismatch=not (degraded & set(q_anom + t_anom)),
+        )
 
         # --- anomaly list (WRONG_* pehle, phir quality) ---
         anomalies: list[str] = []

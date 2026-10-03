@@ -217,6 +217,8 @@ def evaluate_correctness(
     ocr_results: list[dict],
     clip: ClipBackend | None,
     th: dict,
+    *,
+    allow_visual_mismatch: bool = True,
 ) -> dict:
     issues: list[str] = []
     tokens = ocr_tokens(ocr_results)
@@ -231,9 +233,12 @@ def evaluate_correctness(
     strengths = _expected_strengths(product)
 
     # --- category detection ---
+    # CLIP category classification is intentionally not used as primary
+    # evidence. Generic/degraded product photos are often mapped to an
+    # unrelated category (for example, a medicine box -> electronics). OCR
+    # provides stronger evidence when packaging text is readable; when it is
+    # not, the safe result is uncertainty rather than WRONG_CATEGORY.
     detected_category = detect_category_from_text(tokens)
-    if detected_category is None and clip is not None and clip.available:
-        detected_category = clip.classify_category(img, list(CATEGORY_KEYWORDS.keys()))
     expected_key = expected_category_key(expected_category)
 
     wrong_status: str | None = None
@@ -260,7 +265,7 @@ def evaluate_correctness(
             f"The image does not correspond to the provided product "
             f"(expected '{expected_name or core_token}', image shows '{detected_guess or 'a different product'}')."
         )
-    elif wrong_status is None and not any_ocr and clip_sim is not None:
+    elif wrong_status is None and allow_visual_mismatch and not any_ocr and clip_sim is not None:
         if clip_sim < th["clip_min_similarity"]:
             wrong_status = "WRONG_PRODUCT"
             issues.append("Visual similarity to the expected product is too low.")
