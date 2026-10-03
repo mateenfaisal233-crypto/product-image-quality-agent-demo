@@ -1,255 +1,60 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Product Image Anomaly Detection & Quality Agent</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Product image correctness and quality analysis">
+<title>Product Quality Agent</title>
 <style>
-  :root{
-    --bg:#f5f6f8; --card:#ffffff; --line:#e4e7ec; --txt:#1a1f2e; --mut:#667085;
-    --acc:#2563eb; --ok:#12b76a; --warn:#f79009; --bad:#ef4444; --anom:#f97316;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  header{display:flex;align-items:center;gap:10px;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0}
-  .mark{width:26px;height:26px;border-radius:6px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
-  h1{font-size:15px;font-weight:600;margin:0}
-  .status-dot{margin-left:auto;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:6px}
-  .status-dot i{width:8px;height:8px;border-radius:50%;background:#98a2b3;display:inline-block}
-  .status-dot.on i{background:var(--ok)}
-  main{max-width:1120px;margin:0 auto;padding:20px 24px 40px;display:grid;grid-template-columns:380px 1fr;gap:16px;align-items:start}
-  @media(max-width:900px){main{grid-template-columns:1fr}}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px}
-  .card h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:16px 0 8px}
-  .card h2:first-child{margin-top:0}
-  #drop{border:1.5px dashed #cdd5df;border-radius:8px;padding:26px 12px;text-align:center;color:var(--mut);cursor:pointer;font-size:13px;transition:border-color .15s,color .15s}
-  #drop:hover,#drop.hover{border-color:var(--acc);color:var(--acc)}
-  #preview{max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--line);display:block;margin:10px auto 0}
-  .example{display:block;text-align:center;margin-top:8px;font-size:12px;color:var(--acc);background:none;border:none;cursor:pointer;width:100%;padding:4px}
-  .example:hover{text-decoration:underline}
-  .tabs{display:flex;gap:4px;margin-bottom:10px;border-bottom:1px solid var(--line)}
-  .tabs button{background:none;border:none;border-bottom:2px solid transparent;padding:6px 10px;font:inherit;font-size:13px;color:var(--mut);cursor:pointer}
-  .tabs button.act{color:var(--acc);border-bottom-color:var(--acc);font-weight:600}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  label{display:block;font-size:11px;color:var(--mut);margin-bottom:3px}
-  input,textarea{width:100%;background:#fafbfc;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:7px 9px;font:inherit;font-size:13px}
-  input:focus,textarea:focus{outline:none;border-color:var(--acc);background:#fff}
-  textarea{min-height:160px;resize:vertical;font-family:Consolas,Menlo,monospace;font-size:12px}
-  .span2{grid-column:span 2}
-  #go{width:100%;margin-top:14px;padding:10px;border:none;border-radius:8px;background:var(--acc);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
-  #go:hover{background:#1d4ed8}
-  #go:disabled{opacity:.55;cursor:default}
-  .err{margin-top:10px;background:#fef3f2;border:1px solid #fecdca;color:#b42318;padding:8px 10px;border-radius:6px;font-size:13px}
-  .placeholder{color:var(--mut);text-align:center;padding:70px 20px;font-size:13px}
-  .rhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .badge{padding:5px 14px;border-radius:6px;font-weight:700;font-size:14px;letter-spacing:.02em}
-  .b-ok{background:#ecfdf3;color:#027a48;border:1px solid #abefc6}
-  .b-warn{background:#fffaeb;color:#b54708;border:1px solid #fedf89}
-  .b-bad{background:#fef3f2;color:#b42318;border:1px solid #fecdca}
-  .pid{font-size:12px;color:var(--mut)}
-  .overall{margin-left:auto;text-align:right}
-  .overall b{font-size:26px;line-height:1}
-  .overall span{display:block;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
-  .chips{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
-  .chip{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:#fef3f2;color:#b42318;border:1px solid #fecdca}
-  .scores{display:grid;grid-template-columns:1fr 1fr;gap:7px 20px;margin-top:6px}
-  .row{display:grid;grid-template-columns:118px 1fr 36px;align-items:center;gap:8px;font-size:12px}
-  .row .lab{color:var(--mut);white-space:nowrap}
-  .row .val{text-align:right;font-variant-numeric:tabular-nums}
-  .bar{height:6px;background:#eef1f4;border-radius:99px;overflow:hidden}
-  .bar i{display:block;height:100%;border-radius:99px;background:var(--ok);transition:width .4s}
-  .bar i.mid{background:var(--warn)}
-  .bar i.low{background:var(--bad)}
-  .det{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
-  .det div{background:#f8f9fb;border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-size:13px}
-  .det span{display:block;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
-  ul.issues{list-style:none;margin:6px 0 0;padding:0}
-  ul.issues li{border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:6px;padding:7px 10px;margin-bottom:5px;font-size:13px;background:#fff}
-  ul.issues li.vlm{border-left-color:var(--acc);color:#1849a9}
-  ul.issues li.skip{border-left-color:#cdd5df;color:var(--mut);font-style:italic}
-  ul.issues li.none{border-left-color:var(--ok);color:#027a48}
-  .expl{background:#f8f9fb;border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-top:10px;font-size:13px;color:#344054}
-  .jsonrow{margin-top:10px;display:flex;gap:12px;align-items:flex-start}
-  .jsonrow details{flex:1}
-  summary{cursor:pointer;font-size:12px;color:var(--mut)}
-  summary:hover{color:var(--acc)}
-  pre{background:#101828;color:#e4e7ec;border-radius:8px;padding:12px;overflow:auto;font-size:12px;max-height:300px;margin-top:8px}
-  .copy{font-size:12px;color:var(--acc);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap;margin-top:2px}
-  .copy:hover{text-decoration:underline}
-  .spin{display:inline-block;width:14px;height:14px;border:2px solid #d0d5dd;border-top-color:var(--acc);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:8px}
-  @keyframes sp{to{transform:rotate(360deg)}}
+:root{--bg:#f4f7fb;--surface:#fff;--surface2:#f8fafc;--line:#e2e8f0;--text:#172033;--muted:#667085;--blue:#2563eb;--blue-dark:#1d4ed8;--green:#079455;--amber:#d97706;--red:#dc2626;--shadow:0 10px 30px rgba(15,23,42,.07)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}button,input,textarea{font:inherit}button{cursor:pointer}
+.topbar{background:linear-gradient(120deg,#172554,#1e40af);color:#fff}.topbar-inner{max-width:1180px;margin:auto;padding:24px 24px 22px;display:flex;align-items:center;gap:14px}.logo{width:42px;height:42px;border:1px solid rgba(255,255,255,.3);border-radius:12px;display:grid;place-items:center;font-size:20px;font-weight:800;background:rgba(255,255,255,.12)}.brand h1{margin:0;font-size:20px;letter-spacing:-.02em}.brand p{margin:3px 0 0;color:#c7d7fe;font-size:13px}.health{margin-left:auto;display:flex;align-items:center;gap:8px;color:#dbeafe;font-size:12px}.health i{width:9px;height:9px;border-radius:50%;background:#94a3b8}.health.on i{background:#4ade80}.health.off i{background:#f87171}
+main{max-width:1180px;margin:auto;padding:24px;display:grid;grid-template-columns:390px minmax(0,1fr);gap:20px;align-items:start}.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:20px}.section-title{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:750}.section-title:not(:first-child){margin-top:22px}.drop{border:1.5px dashed #b8c4d6;border-radius:12px;padding:24px 16px;text-align:center;background:var(--surface2);color:var(--muted);transition:.18s}.drop:hover,.drop.hover,.drop:focus-within{border-color:var(--blue);background:#eff6ff;color:var(--blue)}.drop strong{display:block;color:var(--text);font-size:14px;margin-bottom:3px}.drop small{display:block;margin-top:6px}.drop.invalid{border-color:var(--red);background:#fff5f5}.file-meta{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px 11px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;font-size:12px}.file-meta span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-meta button{margin-left:auto;border:0;background:transparent;color:var(--red);font-weight:700;padding:2px 5px}.preview{display:block;width:100%;max-height:220px;object-fit:contain;border:1px solid var(--line);border-radius:10px;margin-top:12px;background:#fff}.examples{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.examples button,.link-btn{border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:8px;padding:6px 9px;font-size:12px}.examples button:hover,.link-btn:hover{background:#dbeafe}.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}.tabs button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--muted);padding:7px 11px}.tabs button.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.span2{grid-column:span 2}label{display:block;color:var(--muted);font-size:11px;font-weight:650;margin:0 0 4px}input,textarea{width:100%;border:1px solid var(--line);border-radius:9px;background:#fbfcfe;color:var(--text);padding:9px 10px;font-size:13px}input:focus,textarea:focus{outline:3px solid #dbeafe;border-color:var(--blue);background:#fff}textarea{min-height:178px;resize:vertical;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}.hint{color:var(--muted);font-size:11px;margin:7px 0 0}.primary{width:100%;border:0;border-radius:10px;background:var(--blue);color:#fff;font-weight:750;padding:11px 14px;margin-top:17px;box-shadow:0 4px 12px rgba(37,99,235,.22)}.primary:hover{background:var(--blue-dark)}.primary:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}.error{margin-top:10px;padding:10px 12px;border-radius:9px;background:#fff1f2;color:#b42318;border:1px solid #fecdd3;font-size:13px}.error[hidden]{display:none}.placeholder{text-align:center;color:var(--muted);padding:92px 24px}.placeholder strong{color:var(--text);display:block;font-size:16px;margin-bottom:6px}.spinner{display:inline-block;width:15px;height:15px;border:2px solid #cbd5e1;border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-3px;margin-right:7px}@keyframes spin{to{transform:rotate(360deg)}}
+.result-top{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:800;letter-spacing:.02em}.ok{background:#ecfdf3;color:#027a48;border:1px solid #a7f3d0}.warn{background:#fffbeb;color:#b45309;border:1px solid #fde68a}.bad{background:#fff1f2;color:#be123c;border:1px solid #fecdd3}.product-id{color:var(--muted);font-size:12px;padding-top:5px}.score{text-align:right;margin-left:auto}.score b{font-size:32px;line-height:1}.score small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.09em}.summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.summary-card{border:1px solid var(--line);border-radius:11px;padding:12px;background:var(--surface2)}.summary-card .label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:750}.summary-card strong{display:block;margin-top:3px;font-size:14px}.summary-card.good{border-color:#bbf7d0;background:#f0fdf4}.summary-card.bad{border-color:#fecdd3;background:#fff1f2}.subhead{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:22px 0 9px;font-weight:750}.chips{display:flex;gap:7px;flex-wrap:wrap}.chip{padding:4px 9px;border-radius:999px;background:#fff1f2;color:#be123c;border:1px solid #fecdd3;font-size:11px;font-weight:750}.scores{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px}.score-row{display:grid;grid-template-columns:125px 1fr 32px;align-items:center;gap:8px;font-size:12px}.score-row .label{color:var(--muted);white-space:nowrap}.score-row b{text-align:right;font-variant-numeric:tabular-nums}.bar{height:7px;border-radius:99px;overflow:hidden;background:#e8edf3}.bar i{display:block;height:100%;border-radius:inherit;background:var(--green)}.bar i.mid{background:var(--amber)}.bar i.low{background:var(--red)}.detected{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.detected div{border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--surface2);min-width:0}.detected span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}.detected strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;font-size:13px}.issues{list-style:none;margin:0;padding:0}.issues li{border:1px solid var(--line);border-left:3px solid var(--red);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px;background:#fff}.issues li.none{border-left-color:var(--green);color:#027a48}.issues li.vlm{border-left-color:var(--blue);color:#1d4ed8}.explanation{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:11px 12px;color:#344054;font-size:13px}.jsonline{display:flex;gap:12px;align-items:flex-start;margin-top:12px}.jsonline details{flex:1}summary{color:var(--muted);cursor:pointer;font-size:12px}pre{background:#0f172a;color:#dbeafe;border-radius:10px;padding:12px;overflow:auto;max-height:300px;font-size:12px;margin:8px 0 0}.copy{border:0;background:transparent;color:var(--blue);font-size:12px;padding:1px}.copy:hover{text-decoration:underline}
+@media(max-width:900px){main{grid-template-columns:1fr;max-width:720px}.placeholder{padding:60px 20px}}@media(max-width:560px){.topbar-inner,main{padding-left:16px;padding-right:16px}.topbar-inner{align-items:flex-start}.health{font-size:0}.health i{font-size:initial}.grid,.scores,.summary{grid-template-columns:1fr}.span2{grid-column:auto}.detected{grid-template-columns:1fr}.score-row{grid-template-columns:112px 1fr 30px}.score{margin-left:auto}.card{padding:16px}}
 </style>
 </head>
 <body>
-<header>
-  <div class="mark">P</div>
-  <h1>Product Image Anomaly Detection &amp; Quality Agent</h1>
-  <div id="health" class="status-dot"><i></i>connecting…</div>
-</header>
-
+<header class="topbar"><div class="topbar-inner"><div class="logo">P</div><div class="brand"><h1>Product Image Anomaly Detection &amp; Quality Agent</h1><p>Verify product identity and catalog image quality independently.</p></div><div id="health" class="health"><i></i><span>Connecting…</span></div></div></header>
 <main>
-  <section class="card">
-    <h2>Product image</h2>
-    <div id="drop">Drag &amp; drop an image, or click to browse
-      <input type="file" id="file" accept="image/*" hidden/>
-    </div>
-    <img id="preview" alt="preview" hidden/>
-    <button class="example" id="example" type="button">Load example image</button>
+<section class="card">
+  <h2 class="section-title">1 · Product image</h2>
+  <div id="drop" class="drop" tabindex="0" role="button" aria-label="Choose product image"><strong>Drop an image here</strong>or click to browse<small>PNG, JPG, WEBP · the image stays in this session</small><input id="file" type="file" accept="image/*" hidden></div>
+  <div id="fileMeta" class="file-meta" hidden><span id="fileName"></span><small id="fileSize"></small><button id="clearFile" type="button" aria-label="Remove image">×</button></div>
+  <img id="preview" class="preview" alt="Selected product preview" hidden>
+  <div class="examples"><button type="button" data-sample="doliprane_ok.jpg">Use valid example</button><button type="button" data-sample="doliprane_blurry.jpg">Use blurry example</button><button type="button" data-sample="maalox.jpg">Use wrong-product example</button></div>
 
-    <h2>Product information (JSON)</h2>
-    <div class="tabs">
-      <button id="tabF" class="act" type="button">Form</button>
-      <button id="tabJ" type="button">Raw JSON</button>
-    </div>
-    <div id="paneF" class="grid">
-      <div><label>ID</label><input id="f_id" placeholder="12345"/></div>
-      <div><label>Brand</label><input id="f_brand" placeholder="Sanofi"/></div>
-      <div class="span2"><label>Name</label><input id="f_name" placeholder="Doliprane 1000 mg Comprime"/></div>
-      <div><label>Category</label><input id="f_cat" placeholder="Medicament"/></div>
-      <div><label>Dosage</label><input id="f_dos" placeholder="1000 mg"/></div>
-      <div><label>Form</label><input id="f_form" placeholder="Comprime"/></div>
-      <div><label>Laboratory</label><input id="f_lab" placeholder="Sanofi"/></div>
-      <div class="span2"><label>Packaging</label><input id="f_pack" placeholder="Boite de 8 comprimes"/></div>
-    </div>
-    <div id="paneJ" hidden>
-      <textarea id="pjson" spellcheck="false" placeholder='{"id": "12345", "name": "...", "brand": "..."}'></textarea>
-    </div>
-
-    <button id="go" type="button">Analyze</button>
-    <div id="err" class="err" hidden></div>
-  </section>
-
-  <section class="card" id="report">
-    <div class="placeholder">Analysis result will appear here.<br/><br/>Upload an image, enter the product JSON, and press <b>Analyze</b>.</div>
-  </section>
+  <h2 class="section-title">2 · Product information (JSON)</h2>
+  <div class="tabs"><button id="tabF" class="active" type="button">Guided form</button><button id="tabJ" type="button">Raw JSON</button></div>
+  <div id="paneF" class="grid">
+    <div><label for="f_id">Product ID</label><input id="f_id" placeholder="12345"></div><div><label for="f_brand">Brand</label><input id="f_brand" placeholder="Sanofi"></div>
+    <div class="span2"><label for="f_name">Product name</label><input id="f_name" placeholder="Doliprane 1000 mg Comprime"></div>
+    <div><label for="f_cat">Category</label><input id="f_cat" placeholder="Medicament"></div><div><label for="f_dos">Dosage / strength</label><input id="f_dos" placeholder="1000 mg"></div>
+    <div><label for="f_form">Form</label><input id="f_form" placeholder="Comprime"></div><div><label for="f_lab">Laboratory</label><input id="f_lab" placeholder="Sanofi"></div>
+    <div class="span2"><label for="f_pack">Packaging / quantity</label><input id="f_pack" placeholder="Boite de 8 comprimes"></div>
+  </div>
+  <div id="paneJ" hidden><label for="pjson">Product JSON object</label><textarea id="pjson" spellcheck="false" placeholder='{"id":"12345","name":"Doliprane 1000 mg Comprime","brand":"Sanofi","category":"Medicament"}'></textarea><p class="hint">Optional fields may be omitted; the agent will still analyze the image.</p></div>
+  <button id="go" class="primary" type="button">Analyze image</button><div id="err" class="error" hidden></div>
+</section>
+<section class="card" id="report"><div class="placeholder"><strong>Your analysis will appear here</strong>Upload an image, add the product metadata, and select <b>Analyze image</b>.</div></section>
 </main>
-
 <script>
-const $ = id => document.getElementById(id);
-let currentFile = null;
-
-fetch("/health").then(r=>r.json()).then(h=>{
-  const el = $("health");
-  el.innerHTML = `<i></i>${h.vlm_enabled ? "Online · " + h.vlm_provider : "Online"}`;
-  el.classList.add("on");
-}).catch(()=>{ $("health").innerHTML = "<i></i>Server offline"; });
-
-$("drop").onclick = ()=>$("file").click();
-$("file").onchange = e => { if(e.target.files[0]) setFile(e.target.files[0]); };
-["dragover","dragenter"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.add("hover");}));
-["dragleave","drop"].forEach(ev=>$("drop").addEventListener(ev,e=>{e.preventDefault();$("drop").classList.remove("hover");}));
-$("drop").addEventListener("drop", e => { const f=e.dataTransfer.files[0]; if(f && f.type.startsWith("image/")) setFile(f); });
-
-function setFile(file){
-  currentFile = file;
-  const img = $("preview");
-  img.src = URL.createObjectURL(file);
-  img.hidden = false;
-}
-
-$("example").onclick = async ()=>{
-  const res = await fetch("/samples/doliprane_ok.jpg");
-  if(!res.ok){ showErr("Example not found."); return; }
-  setFile(new File([await res.blob()], "doliprane_ok.jpg", {type:"image/jpeg"}));
-  const pj = await fetch("/samples/product_doliprane.json").then(r=>r.json());
-  fillForm(pj);
-  $("tabF").click();
-};
-
-function fillForm(p){
-  const map = {f_id:"id", f_name:"name", f_brand:"brand", f_cat:"category", f_dos:"dosage", f_form:"form", f_lab:"laboratory", f_pack:"packaging"};
-  for (const [inp, key] of Object.entries(map)) $(inp).value = p[key] ?? "";
-}
-
-$("tabF").onclick = ()=>{ $("tabF").classList.add("act"); $("tabJ").classList.remove("act"); $("paneF").hidden=false; $("paneJ").hidden=true; };
-$("tabJ").onclick = ()=>{ $("tabJ").classList.add("act"); $("tabF").classList.remove("act"); $("paneJ").hidden=false; $("paneF").hidden=true; };
-
-function productFromForm(){
-  const o={};
-  const map={f_id:"id",f_name:"name",f_brand:"brand",f_cat:"category",f_dos:"dosage",f_form:"form",f_lab:"laboratory",f_pack:"packaging"};
-  for(const [k,v] of Object.entries(map)){ const val=$(k).value.trim(); if(val) o[v]=val; }
-  return o;
-}
-function showErr(msg){ $("err").textContent=msg; $("err").hidden=false; }
-
-$("go").onclick = async ()=>{
-  $("err").hidden=true;
-  if(!currentFile){ showErr("Select an image first (browse or example)."); return; }
-  let product;
-  if(!$("paneJ").hidden){
-    try{ product = JSON.parse($("pjson").value); }
-    catch(e){ showErr("Invalid product JSON: "+e.message); return; }
-  } else {
-    product = productFromForm();
-    if(!Object.keys(product).length){ showErr("Fill in the product information."); return; }
-  }
-  const fd = new FormData();
-  fd.append("file", currentFile, currentFile.name);
-  fd.append("product_json", JSON.stringify(product));
-  const btn=$("go");
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span>Analyzing…';
-  $("report").innerHTML='<div class="placeholder"><span class="spin"></span>Analyzing image…</div>';
-  try{
-    const res = await fetch("/analyze", {method:"POST", body:fd});
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.detail || res.statusText);
-    render(data);
-  }catch(e){ $("report").innerHTML='<div class="placeholder">Analysis failed.</div>'; showErr("Analysis failed: "+e.message); }
-  finally{ btn.disabled=false; btn.textContent="Analyze"; }
-};
-
-function lvl(v){ return v>=70?"":(v>=45?"mid":"low"); }
-function badge(s){
-  if(s==="VALID") return ["b-ok", s];
-  if(s==="VALID_BUT_LOW_QUALITY") return ["b-warn", s];
-  if(s==="LOW_IMAGE_QUALITY") return ["b-warn", s];
-  if(s==="ANOMALY") return ["b-warn", s];
-  return ["b-bad", s];
-}
-function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-
-function render(r){
-  const sc=r.scores||{};
-  const rows=Object.entries(sc).filter(([k])=>k!=="overall").map(([k,v])=>`
-    <div class="row"><span class="lab">${k.replace(/_/g," ")}</span>
-      <div class="bar"><i class="${lvl(v)}" style="width:${v}%"></i></div>
-      <span class="val">${(+v).toFixed(0)}</span></div>`).join("");
-  let issues = (r.issues||[]).map(i=>{
-    const cls = i.startsWith("VLM validation skipped") ? "skip" : (i.startsWith("VLM validation:") ? "vlm" : "");
-    return `<li class="${cls}">${esc(i)}</li>`;
-  }).join("");
-  if(!issues) issues = '<li class="none">No issues found.</li>';
-  const chips = (r.anomaly_types||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join("");
-  const [bcls, btxt] = badge(r.status);
-  const raw = esc(JSON.stringify(r,null,2));
-  $("report").innerHTML = `
-    <div class="rhead">
-      <span class="badge ${bcls}">${esc(btxt)}</span>
-      <span class="pid">Product ID: ${esc(String(r.product_id||"—"))}</span>
-      <span class="overall"><b>${sc.overall!=null?(+sc.overall).toFixed(0):"—"}</b><span>Overall score</span></span>
-    </div>
-    ${chips ? `<div class="chips">${chips}</div>` : ""}
-    <h2>Scores</h2>
-    <div class="scores">${rows}</div>
-    <h2>Detected product</h2>
-    <div class="det">
-      <div><span>Name</span>${esc(r.detected_product?.name||"—")}</div>
-      <div><span>Brand</span>${esc(r.detected_product?.brand||"—")}</div>
-      <div><span>Category</span>${esc(r.detected_product?.category||"—")}</div>
-    </div>
-    <h2>Issues</h2>
-    <ul class="issues">${issues}</ul>
-    <div class="expl">${esc(r.explanation||"")}</div>
-    <div class="jsonrow">
-      <details><summary>JSON output</summary><pre id="rawjson">${raw}</pre></details>
-      <button class="copy" type="button" id="copyBtn">Copy</button>
-    </div>`;
-  $("copyBtn").onclick = async ()=>{
-    await navigator.clipboard.writeText(JSON.stringify(r, null, 2));
-    $("copyBtn").textContent = "Copied";
-    setTimeout(()=>{ $("copyBtn").textContent = "Copy"; }, 1500);
-  };
-}
+const $=id=>document.getElementById(id);let currentFile=null,objectUrl=null;
+function setHealth(text,on=false,off=false){const el=$("health");el.className="health"+(on?" on":"")+(off?" off":"");el.querySelector("span").textContent=text}
+fetch("/health").then(r=>{if(!r.ok)throw Error();return r.json()}).then(h=>setHealth(h.vlm_enabled?`Online · ${h.vlm_provider}`:"Online",true)).catch(()=>setHealth("Server offline",false,true));
+function showErr(msg){$("err").textContent=msg;$("err").hidden=false}function hideErr(){$("err").hidden=true}
+function setFile(file){if(!file||!file.type.startsWith("image/")){showErr("Please choose a valid image file.");$("drop").classList.add("invalid");return}hideErr();$("drop").classList.remove("invalid");currentFile=file;if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(file);$("preview").src=objectUrl;$("preview").hidden=false;$("fileMeta").hidden=false;$("fileName").textContent=file.name;$("fileSize").textContent=`${Math.max(1,file.size/1024).toFixed(0)} KB`;$("drop").querySelector("strong").textContent="Image selected"}
+function clearFile(){currentFile=null;if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=null;$("preview").hidden=true;$("preview").removeAttribute("src");$("fileMeta").hidden=true;$("drop").querySelector("strong").textContent="Drop an image here";$("file").value=""}
+$("drop").onclick=()=>$("file").click();$("drop").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("file").click()}};$("file").onchange=e=>setFile(e.target.files[0]);$("clearFile").onclick=clearFile;
+["dragover","dragenter"].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.add('hover')}));["dragleave","drop"].forEach(ev=>$('drop').addEventListener(ev,e=>{e.preventDefault();$('drop').classList.remove('hover')}));$('drop').addEventListener('drop',e=>setFile(e.dataTransfer.files[0]));
+const map={f_id:"id",f_name:"name",f_brand:"brand",f_cat:"category",f_dos:"dosage",f_form:"form",f_lab:"laboratory",f_pack:"packaging"};function productFromForm(){const o={};for(const[k,v]of Object.entries(map)){const val=$(k).value.trim();if(val)o[v]=val}return o}function fillForm(p){for(const[k,v]of Object.entries(map))$(k).value=p[v]??""}
+function syncFormToJSON(){ $("pjson").value=JSON.stringify(productFromForm(),null,2)}function syncJSONToForm(){try{const p=JSON.parse($("pjson").value);if(!p||typeof p!=="object"||Array.isArray(p))throw Error("JSON must be an object");fillForm(p);return p}catch(e){throw Error("Invalid product JSON: "+e.message)}}
+$("tabF").onclick=()=>{$("tabF").classList.add("active");$("tabJ").classList.remove("active");$("paneF").hidden=false;$("paneJ").hidden=true};$("tabJ").onclick=()=>{syncFormToJSON();$("tabJ").classList.add("active");$("tabF").classList.remove("active");$("paneF").hidden=true;$("paneJ").hidden=false};
+for(const id of Object.keys(map))$(id).addEventListener("input",()=>{if(!$('paneJ').hidden)syncFormToJSON()});
+async function loadSample(name){try{const[imgRes,jsonRes]=await Promise.all([fetch(`/samples/${name}`),fetch('/samples/product_doliprane.json')]);if(!imgRes.ok||!jsonRes.ok)throw Error('Sample unavailable');setFile(new File([await imgRes.blob()],name,{type:'image/jpeg'}));fillForm(await jsonRes.json());$("tabF").click();hideErr()}catch(e){showErr(e.message)}}document.querySelectorAll('[data-sample]').forEach(b=>b.onclick=()=>loadSample(b.dataset.sample));
+function lvl(v){return v>=70?"":v>=45?"mid":"low"}function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function badge(s){return s==='VALID'?['ok',s]:s==='VALID_BUT_LOW_QUALITY'||s==='ANOMALY'||s==='LOW_IMAGE_QUALITY'?['warn',s]:['bad',s]}
+function render(r){const sc=r.scores||{},[bc,bt]=badge(r.status),rows=Object.entries(sc).filter(([k])=>k!=="overall").map(([k,v])=>`<div class="score-row"><span class="label">${esc(k.replace(/_/g,' '))}</span><div class="bar"><i class="${lvl(v)}" style="width:${Math.max(0,Math.min(100,+v))}%"></i></div><b>${(+v).toFixed(0)}</b></div>`).join('');const issues=(r.issues||[]).map(i=>`<li class="${i.startsWith('VLM validation:')?'vlm':''}">${esc(i)}</li>`).join('')||'<li class="none">No issues found.</li>';const chips=(r.anomaly_types||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join('');const raw=esc(JSON.stringify(r,null,2));$("report").innerHTML=`<div class="result-top"><span class="badge ${bc}">${esc(bt)}</span><span class="product-id">Product ID: ${esc(r.product_id||'—')}</span><div class="score"><b>${sc.overall==null?'—':(+sc.overall).toFixed(0)}</b><small>Overall score</small></div></div><div class="summary"><div class="summary-card ${r.is_correct_product?'good':'bad'}"><span class="label">Product identity</span><strong>${r.is_correct_product?'✓ Correct product':'! Product mismatch'}</strong></div><div class="summary-card ${r.status==='VALID'?'good': 'bad'}"><span class="label">Catalog suitability</span><strong>${r.status==='VALID'?'✓ Suitable':'! Review image quality'}</strong></div></div>${chips?`<div class="subhead">Detected anomalies</div><div class="chips">${chips}</div>`:''}<div class="subhead">Quality scores</div><div class="scores">${rows}</div><div class="subhead">Detected product</div><div class="detected"><div><span>Name</span><strong title="${esc(r.detected_product?.name||'—')}">${esc(r.detected_product?.name||'—')}</strong></div><div><span>Brand</span><strong>${esc(r.detected_product?.brand||'—')}</strong></div><div><span>Category</span><strong>${esc(r.detected_product?.category||'—')}</strong></div></div><div class="subhead">Issues and explanation</div><ul class="issues">${issues}</ul><div class="explanation">${esc(r.explanation||'')}</div><div class="jsonline"><details><summary>View JSON output</summary><pre id="rawjson">${raw}</pre></details><button id="copyBtn" class="copy" type="button">Copy JSON</button></div>`;$("copyBtn").onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(r,null,2));$("copyBtn").textContent='Copied';setTimeout(()=>$("copyBtn").textContent='Copy JSON',1500)}catch(e){showErr('Clipboard access is unavailable; expand JSON and copy it manually.')}}}
+$("go").onclick=async()=>{hideErr();if(!currentFile)return showErr('Select a product image first.');let product;try{product=$("paneJ").hidden?productFromForm():syncJSONToForm()}catch(e){return showErr(e.message)}if(!Object.keys(product).length)return showErr('Add at least one product metadata field.');const fd=new FormData();fd.append('file',currentFile,currentFile.name);fd.append('product_json',JSON.stringify(product));const btn=$("go");btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Analyzing image…';$("report").innerHTML='<div class="placeholder"><span class="spinner"></span><strong>Analyzing image</strong>Running correctness, OCR, quality, and composition checks…</div>';try{const res=await fetch('/analyze',{method:'POST',body:fd});let data;try{data=await res.json()}catch(e){throw Error('The server returned an invalid response.')}if(!res.ok)throw Error(data.detail||res.statusText);render(data)}catch(e){$("report").innerHTML='<div class="placeholder"><strong>Analysis failed</strong>Check the error message and try again.</div>';showErr(e.message)}finally{btn.disabled=false;btn.textContent='Analyze image'}};
 </script>
 </body>
 </html>
