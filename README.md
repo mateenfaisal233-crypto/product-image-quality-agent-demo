@@ -71,6 +71,19 @@ report = agent.analyze("photo.jpg", {"id": "123", "name": "Doliprane 1000 mg Com
 print(report["status"], report["scores"]["overall"])
 ```
 
+### Live demo (Streamlit)
+
+```powershell
+streamlit run streamlit_app.py     # local par demo UI
+```
+
+Cloud deploy (free — Streamlit Community Cloud):
+1. GitHub repo push hona chahiye (`streamlit_app.py` root mein).
+2. [share.streamlit.io](https://share.streamlit.io) → **Deploy a app** → repo / branch / `streamlit_app.py` → Deploy.
+3. App settings → **Secrets** → `GROQ_API_KEY = "..."` (VLM notes ke liye; optional hai — bina key ke app chalta hai, VLM skip ho jata hai).
+
+Notes: pehli analysis CLIP model download karti hai (~1 min, ~600 MB); 12h idle par app sleep ho jati hai (wake par dobara model load). Linux build ke liye `requirements.txt` mein CPU torch index aur `packages.txt` (libgl1) diya hua hai.
+
 ---
 
 ## JSON Output (spec section 7)

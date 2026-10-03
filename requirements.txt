@@ -1,3 +1,7 @@
+# CPU-only torch: PyPI torch Linux par hundreds of MB ke CUDA packages install
+# karta hai - is liye extra index se CPU wheel chunta hai.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 # Base (PyPI)
 fastapi
 uvicorn
@@ -11,8 +15,7 @@ requests
 pytest
 transformers
 rapidocr-onnxruntime
+torch
 
-# Torch (CPU) - install separately first:
-#   pip install torch --index-url https://download.pytorch.org/whl/cpu
-# Torch is intentionally not listed as a normal PyPI dependency because that
-# can install hundreds of megabytes of CUDA packages on CPU-only machines.
+# Live demo (Streamlit Community Cloud)
+streamlit
