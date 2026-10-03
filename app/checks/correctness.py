@@ -165,6 +165,12 @@ def _expected_strengths(product: dict) -> set[str]:
     return strengths
 
 
+def _expected_quantities(product: dict, strengths: set[str]) -> set[str]:
+    """Extract packaging/quantity numbers while excluding dosage strengths."""
+    values = " ".join(str(product.get(field) or "") for field in ("quantity", "packaging"))
+    return {num for num in re.findall(r"\d+", values) if num not in strengths}
+
+
 def _clip_score_to_points(sim: float | None) -> float | None:
     if sim is None:
         return None
@@ -231,6 +237,7 @@ def evaluate_correctness(
 
     name_tokens = _significant_name_tokens(expected_name)
     strengths = _expected_strengths(product)
+    quantities = _expected_quantities(product, strengths)
 
     # --- category detection ---
     # CLIP category classification is intentionally not used as primary
@@ -321,13 +328,30 @@ def evaluate_correctness(
                         f"Expected pharmaceutical form '{product.get('form')}' but the image shows '{sorted(found_form)[0]}'."
                     )
 
+            # Packaging quantity is only judged when the image visibly
+            # contains a competing number. Missing OCR is not treated as a
+            # mismatch because quantity may simply be out of frame or blurred.
+            if wrong_status is None and quantities:
+                visible_numbers = ocr_numbers - strengths
+                if visible_numbers and not (quantities & visible_numbers):
+                    wrong_status = "WRONG_VARIANT"
+                    issues.append(
+                        f"Expected packaging quantity ({'/'.join(sorted(quantities))}) was not found on the image "
+                        f"(image shows: {', '.join(sorted(visible_numbers))})."
+                    )
+
     # --- product_match score ---
     ocr_match_ratio = 0.0
     if name_tokens:
         hits = sum(1 for t in name_tokens if _fuzzy_in(t, tokens_set))
         ocr_match_ratio = hits / len(name_tokens)
 
-    if clip_points is not None:
+    if not allow_visual_mismatch and not any_ocr:
+        # Correctness remains independent from quality: when degradation
+        # removes usable evidence, report a neutral/high-confidence match
+        # rather than allowing a noisy CLIP score to imply a mismatch.
+        product_match = 75.0
+    elif clip_points is not None:
         product_match = 0.45 * clip_points + 0.55 * ocr_match_ratio * 100.0
     elif any_ocr:
         product_match = ocr_match_ratio * 100.0

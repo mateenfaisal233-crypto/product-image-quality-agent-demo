@@ -57,6 +57,34 @@ def _lighting_score(mean_val: float) -> float:
     return float(np.clip(100.0 - abs(mean_val - 140.0) * 0.12, 0.0, 100.0))
 
 
+def distortion_ratio(product_mask: np.ndarray | None) -> float:
+    """Estimate perspective/warping from the largest product quadrilateral.
+
+    A value of 1.0 is rectangular. Larger values mean opposite edges have
+    increasingly different lengths, which is a useful conservative signal for
+    a strongly skewed or warped catalog product region.
+    """
+    if product_mask is None or product_mask.size == 0:
+        return 1.0
+    contours, _ = cv2.findContours(product_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return 1.0
+    contour = max(contours, key=cv2.contourArea)
+    perimeter = cv2.arcLength(contour, True)
+    if perimeter <= 0:
+        return 1.0
+    polygon = cv2.approxPolyDP(contour, 0.04 * perimeter, True)
+    if len(polygon) != 4:
+        return 1.0
+    points = polygon.reshape(4, 2).astype(np.float32)
+    sides = np.linalg.norm(np.roll(points, -1, axis=0) - points, axis=1)
+    if np.any(sides <= 1.0):
+        return 1.0
+    opposite = [max(sides[0], sides[2]) / min(sides[0], sides[2]),
+                max(sides[1], sides[3]) / min(sides[1], sides[3])]
+    return float(max(opposite))
+
+
 def evaluate_quality(
     img: np.ndarray,
     th: dict,
@@ -128,6 +156,12 @@ def evaluate_quality(
         anomalies.append("COMPRESSION_ARTIFACTS")
         issues.append("Visible compression artifacts.")
 
+    # --- geometric distortion / perspective warp ---
+    distortion = distortion_ratio(product_mask)
+    if distortion > th.get("distortion_side_ratio_max", 1.35):
+        anomalies.append("DISTORTION")
+        issues.append("Product edges appear strongly distorted or perspective-warped.")
+
     # --- corrupted: gray sab ek rang ---
     if float(gray.std()) < 1.0:
         anomalies.append("CORRUPTED_IMAGE")
@@ -142,6 +176,7 @@ def evaluate_quality(
         "lap_var": round(lap_var, 2),
         "mean_val": round(mean_val, 1),
         "blockiness": round(ratio, 3),
+        "distortion": round(distortion, 3),
         "width": w,
         "height": h,
     }

@@ -33,6 +33,7 @@ DEFAULTS: dict[str, Any] = {
         "contrast_min": 35.0,
         "noise_median_max": 18.0,
         "blockiness_ratio_max": 1.6,
+        "distortion_side_ratio_max": 1.35,
         "product_min_area_ratio": 0.02,
         "product_small_area_ratio": 0.05,
         "edge_margin_min": 0.02,

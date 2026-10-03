@@ -102,7 +102,7 @@ print(report["status"], report["scores"]["overall"])
 | Category alag (Medicament vs Shampoo) | `WRONG_CATEGORY` |
 | Doosra product (Doliprane vs Maalox) | `WRONG_PRODUCT` |
 | Brand alag (Sanofi vs Novartis) | `WRONG_BRAND` |
-| Dosage/form/packaging alag (1000mg vs 500mg) | `WRONG_VARIANT` |
+| Dosage/form/packaging/quantity alag (1000mg vs 500mg, pack count) | `WRONG_VARIANT` |
 | Sahi product + koi anomaly nahi + overall ≥ 70 | `VALID` |
 | Sahi product + quality anomaly (BLUR, LOW_RESOLUTION...) — spec section 9: blurry ⇒ yehi | `VALID_BUT_LOW_QUALITY` |
 | Sahi product + corrupted image, ya overall < 50 | `LOW_IMAGE_QUALITY` |
@@ -137,7 +137,7 @@ Weights `config.yaml → scoring.weights` mein **configurable** hain (auto-norma
 
 | Section | Anomaly codes |
 |---|---|
-| 4.1 Quality | `BLUR`, `EXCESSIVE_BLUR`, `LOW_RESOLUTION`, `OVEREXPOSURE`, `UNDEREXPOSURE`, `POOR_CONTRAST`, `NOISE`, `PIXELATION`, `COMPRESSION_ARTIFACTS`, `CORRUPTED_IMAGE` |
+| 4.1 Quality | `BLUR`, `EXCESSIVE_BLUR`, `LOW_RESOLUTION`, `OVEREXPOSURE`, `UNDEREXPOSURE`, `POOR_CONTRAST`, `NOISE`, `PIXELATION`, `COMPRESSION_ARTIFACTS`, `DISTORTION`, `CORRUPTED_IMAGE` |
 | 4.2 Visibility | `PRODUCT_NOT_VISIBLE`, `PRODUCT_TOO_SMALL`, `PRODUCT_CUT_OFF` |
 | 4.3 Composition | `BAD_COMPOSITION`, `EXCESSIVE_EMPTY_SPACE`, `MULTIPLE_PRODUCTS` |
 | 4.4 Background | `DISTRACTING_BACKGROUND`, `BACKGROUND_CLUTTER` |
@@ -208,8 +208,8 @@ Test images khud generate hoti hain (PIL synthetic) — client material pe depen
 | 1 | Image + product JSON → correctness / anomalies / suitability / score | ✅ |
 | 2.1 | Image input: file / URL / base64 | ✅ agent + API (multipart, `image_base64`, `image_url`) |
 | 2.2 | Partial product JSON chale | ✅ (missing fields skip hote hain) |
-| 3.1–3.4 | WRONG_PRODUCT / WRONG_BRAND / WRONG_VARIANT / WRONG_CATEGORY | ✅ tests |
-| 4.1 | Quality anomalies (blur, low res, noise, exposure, contrast, corruption...) | ✅ `quality.py` |
+| 3.1–3.4 | WRONG_PRODUCT / WRONG_BRAND / WRONG_VARIANT / WRONG_CATEGORY, including quantity/packaging evidence | ✅ tests |
+| 4.1 | Quality anomalies (blur, low res, noise, exposure, contrast, distortion, corruption...) | ✅ `quality.py` |
 | 4.2 | Visibility anomalies (too small, cut off, not visible) | ✅ `visibility.py` |
 | 4.3 | Composition (edge, empty space, framing, multiple products) | ✅ `composition.py` |
 | 4.4 | Background (distracting, clutter, unwanted objects) | ✅ `background.py` |
@@ -219,7 +219,7 @@ Test images khud generate hoti hain (PIL synthetic) — client material pe depen
 | 7 | Exact JSON schema (sab 3 examples jaisa) | ✅ `report.py` + schema tests |
 | 8 | LLM-only NAHI; CV bunyad; VLM sirf validation layer | ✅ OpenCV + CLIP + OCR; Groq notes-only |
 | 9 | Correctness aur quality independent (blur ⇒ VBLQ, wrong ⇒ WRONG_*) | ✅ `test_blurry`, `test_wrong_*` |
-| 10 | Source, deps, README, API/UI, examples in/out, sab required tests | ✅ 41 tests |
+| 10 | Source, deps, README, API/UI, examples in/out, sab required tests | ✅ 43 tests |
 | 11 | "Is this the correct product?" + "Is this a good image?" dono alag | ✅ |
 
 ---

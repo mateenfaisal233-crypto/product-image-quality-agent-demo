@@ -29,6 +29,7 @@ thresholds:
   contrast_min: 35.0              # gray std is se neeche -> POOR_CONTRAST
   noise_median_max: 18.0          # median abs dev is se ooper -> NOISE
   blockiness_ratio_max: 1.6       # JPEG blocking threshold
+  distortion_side_ratio_max: 1.35 # perspective/warping side-length ratio
   # --- product segmentation / visibility ---
   product_min_area_ratio: 0.02    # is se chhota -> PRODUCT_NOT_VISIBLE
   product_small_area_ratio: 0.05  # is se chhota -> PRODUCT_TOO_SMALL
