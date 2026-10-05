@@ -1,0 +1,46 @@
+=============================================================
+ PRODUCT IMAGE QUALITY AGENT - START HERE
+=============================================================
+
+WHAT YOU NEED
+ - A Windows PC
+ - Python 3.10 or newer: https://www.python.org/downloads/
+   (IMPORTANT: tick "Add Python to PATH" during installation)
+ - Internet the first time only (to download the components)
+
+-------------------------------------------------------------
+HOW TO START THE APP (no programming knowledge needed)
+-------------------------------------------------------------
+ 1. Double-click  "Start App.bat"
+ 2. First time only: wait 5-10 minutes while it installs everything.
+ 3. Your web browser opens automatically - that IS the app.
+ 4. Click "Load example image" (top right) then "Analyze",
+    or upload one of your own product images.
+
+ That's it!
+
+ NOTE: if Windows shows a security warning when you double-click,
+ click "More info"  ->  "Run anyway".
+
+-------------------------------------------------------------
+HOW TO STOP
+-------------------------------------------------------------
+Close the black window. (The app runs only while that window is open.)
+
+-------------------------------------------------------------
+NO INSTALLATION - ONLINE DEMO
+-------------------------------------------------------------
+https://appuct-image-quality-agent-demo-dv7rtfhcmfszn5awblvyue.streamlit.app/
+
+ - Just open the link in a browser and use it.
+ - First analysis takes about 1 minute (it downloads the AI model once).
+ - If the page says the app is sleeping, click the wake-up button.
+
+-------------------------------------------------------------
+NEED MORE DETAILS?
+-------------------------------------------------------------
+ - README.md            full documentation
+ - Project Report PDF   results, test coverage, specifications
+ - If anything fails, take a photo of this window's error and send it.
+
+=============================================================

@@ -14,6 +14,19 @@ AI agent jo ek **product image** + **product JSON** leta hai aur batata hai:
 
 ---
 
+## Quick Start (Windows) — one double-click
+
+1. Extract the ZIP.
+2. Double-click **`Start App.bat`** — first time it installs everything
+   (5–10 min, needs Python 3.10+ with "Add Python to PATH"); after that your
+   browser opens the app automatically.
+3. Click **Load example image** → **Analyze**.
+
+No programming knowledge needed. Plain-English instructions: `START HERE.txt`.
+Online version (no install): https://appuct-image-quality-agent-demo-dv7rtfhcmfszn5awblvyue.streamlit.app/
+
+---
+
 ## Installation
 
 Poora project + venv ek hi folder mein hai — folder delete = sab delete.
