@@ -66,6 +66,10 @@ div[data-baseweb="textarea"]>div{border-radius:10px !important;border-color:#d7e
 div[data-testid="stButton"]>button{border-radius:10px;font-weight:700;height:2.7rem;
   background:var(--blue);border:none;letter-spacing:.02em;}
 div[data-testid="stButton"]>button:hover{background:#1d4ed8;border:none;color:#fff;}
+div[data-testid="stFormSubmitButton"]>button{border-radius:10px;font-weight:800;height:3rem;
+  font-size:1.02rem;background:var(--blue);border:none;letter-spacing:.02em;width:100%;}
+div[data-testid="stFormSubmitButton"]>button:hover{background:#1d4ed8;border:none;color:#fff;}
+.stCaption{color:var(--muted);}
 [data-testid="stExpander"]{border:1px solid var(--line);border-radius:12px;background:#fafbfd;}
 
 .report-head{display:flex;justify-content:space-between;align-items:center;gap:1.2rem;flex-wrap:wrap;}
@@ -118,9 +122,11 @@ st.markdown(
 <div class="hero">
   <div class="eyebrow">PRODUCT IMAGE ANOMALY DETECTION</div>
   <h1>Product Image Anomaly Detection &amp; Quality Agent</h1>
-  <p>Upload a product image with its product JSON &rarr; status, 9 scores, issues
-  and a plain explanation. Spec-compliant &middot; OpenCV + CLIP + OCR &middot;
-  analysis takes ~5 seconds (first run downloads models, ~1 min).</p>
+  <p>Upload a picture of your product &rarr; the agent tells you whether it is
+  the right product and whether the photo is good enough for a catalog: clear
+  status, score out of 100, list of issues and a plain-English explanation.
+  No technical knowledge needed &middot; analysis takes ~5 seconds (first run
+  downloads the model, ~1 min).</p>
 </div>
 """,
     unsafe_allow_html=True,
@@ -131,6 +137,23 @@ SAMPLES = ROOT / "examples" / "samples"
 EXAMPLES = sorted(p.name for p in SAMPLES.glob("*.jpg"))
 DEFAULT_EXAMPLE = "doliprane_ok.jpg" if "doliprane_ok.jpg" in EXAMPLES else (EXAMPLES[0] if EXAMPLES else None)
 DEFAULT_JSON = (SAMPLES / "product_doliprane.json").read_text(encoding="utf-8") if (SAMPLES / "product_doliprane.json").exists() else "{}"
+
+EXAMPLE_LABELS = {
+    "doliprane_ok.jpg": "Correct product (Doliprane)",
+    "doliprane_blurry.jpg": "Blurry photo",
+    "maalox.jpg": "Wrong product (Maalox)",
+    "doliprane_500.jpg": "Wrong dosage (500 mg)",
+    "doliprane_badbrand.jpg": "Wrong brand",
+    "shampoo.jpg": "Wrong category (shampoo)",
+    "doliprane_composition.jpg": "Wrong composition text",
+    "doliprane_lowres.jpg": "Low resolution",
+    "doliprane_clutter.jpg": "Cluttered background",
+}
+
+try:
+    PRODUCT_DEFAULTS: dict = json.loads(DEFAULT_JSON)
+except json.JSONDecodeError:
+    PRODUCT_DEFAULTS = {}
 
 STATUS_STYLE = {
     "VALID": "green",
@@ -240,12 +263,13 @@ def render_report(res: dict) -> None:
 left, right = st.columns([5, 7], gap="large")
 
 with left, st.container(border=True):
-    st.markdown('<div class="panel-title">Input</div>', unsafe_allow_html=True)
-    uploaded = st.file_uploader("Product image", type=["jpg", "jpeg", "png", "webp"])
+    st.markdown('<div class="panel-title">Step 1 &middot; Choose a picture</div>', unsafe_allow_html=True)
+    uploaded = st.file_uploader("Upload your own photo", type=["jpg", "jpeg", "png", "webp"])
     example = st.selectbox(
-        "Or pick an example",
+        "Or try one of these examples",
         EXAMPLES,
         index=EXAMPLES.index(DEFAULT_EXAMPLE) if DEFAULT_EXAMPLE else 0,
+        format_func=lambda f: EXAMPLE_LABELS.get(f, f),
     )
 
     input_image = None
@@ -261,24 +285,63 @@ with left, st.container(border=True):
         sample_path = SAMPLES / example
         if sample_path.exists():
             input_image = str(sample_path)
-            st.image(str(sample_path), caption=f"Example: {example}", width="stretch")
+            st.image(str(sample_path), caption=EXAMPLE_LABELS.get(example, example), width="stretch")
 
-    product_json = st.text_area("Product JSON (partial fields OK)", value=DEFAULT_JSON, height=230)
-    analyze_clicked = st.button("Analyze", width="stretch")
+    st.markdown('<div class="panel-title">Step 2 &middot; Product details</div>', unsafe_allow_html=True)
+    st.caption("Pre-filled for the examples - change these fields for your own photos.")
+
+    with st.form("product_form"):
+        p_name = st.text_input("Product name", str(PRODUCT_DEFAULTS.get("name", "")))
+        p_brand = st.text_input("Brand", str(PRODUCT_DEFAULTS.get("brand", "")))
+        c1, c2 = st.columns(2)
+        with c1:
+            p_cat = st.text_input("Category", str(PRODUCT_DEFAULTS.get("category", "")))
+        with c2:
+            p_dos = st.text_input("Dosage / strength", str(PRODUCT_DEFAULTS.get("dosage", "")))
+        p_id = st.text_input("Product ID (optional)", str(PRODUCT_DEFAULTS.get("id", "")))
+        submitted = st.form_submit_button("Analyze", use_container_width=True)
+
+    with st.expander("Advanced: paste product JSON (optional)"):
+        raw_json = st.text_area(
+            "If this box is filled, it replaces the form above",
+            value="",
+            height=130,
+            placeholder=DEFAULT_JSON.replace("\n", " "),
+        )
 
 with right, st.container(border=True):
     st.markdown('<div class="panel-title">Report</div>', unsafe_allow_html=True)
 
-    if analyze_clicked:
+    if submitted:
         if input_image is None:
-            st.warning("Upload an image or pick an example first.")
+            st.warning("Choose a picture first (upload or example).")
         else:
-            try:
-                product = json.loads(product_json)
-            except json.JSONDecodeError as exc:
-                st.error(f"Invalid product JSON: {exc}")
-                product = None
-            if product is not None:
+            product = None
+            if raw_json.strip():
+                try:
+                    loaded = json.loads(raw_json)
+                    if isinstance(loaded, dict):
+                        product = loaded
+                    else:
+                        st.error('Product JSON must be an object like {"name": "..."}.')
+                except json.JSONDecodeError as exc:
+                    st.error(f"Invalid product JSON: {exc}")
+            else:
+                product = {
+                    key: value
+                    for key, value in {
+                        "id": p_id.strip(),
+                        "name": p_name.strip(),
+                        "brand": p_brand.strip(),
+                        "category": p_cat.strip(),
+                        "dosage": p_dos.strip(),
+                    }.items()
+                    if value
+                }
+                if not product:
+                    product = None
+                    st.warning("Fill at least one product field (or use the JSON box).")
+            if isinstance(product, dict):
                 with st.spinner("Analyzing image\u2026"):
                     try:
                         st.session_state["result"] = get_agent().analyze(input_image, product)
@@ -291,7 +354,7 @@ with right, st.container(border=True):
             """
 <div class="empty">
   <b>No report yet</b>
-  Pick an image on the left (or an example) and click <b>Analyze</b>.
+  Choose a picture on the left, check the product details, then press <b>Analyze</b>.
 </div>
 """,
             unsafe_allow_html=True,
